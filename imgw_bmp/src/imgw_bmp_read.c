@@ -78,9 +78,9 @@ imgw_bmp_read_open
     if (bmp_reader->fp == NULL) return 1;
     bmp_reader->eof_reached = 0;
 
-    return
-        read_header
-            (bmp_reader);
+    if (read_header(bmp_reader)) return 1;
+
+    return bmp_reader->eof_reached;
 }
 
 void
