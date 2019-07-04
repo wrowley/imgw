@@ -57,7 +57,7 @@ imgw_bmp_write_8bit_grayscale
     ,      unsigned       height
     );
 
-/* Writes an 24-bit image.
+/* Writes a 24-bit image.
  * 
  * Returns zero if a file was opened successfully, and non-zero otherwise. No
  * guarantees are made beyond this.

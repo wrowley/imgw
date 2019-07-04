@@ -213,6 +213,8 @@ imgw_bmp_write_24bit
         }
     }
 
+    fclose(fp);
+
     return 0;
 }
 
@@ -222,7 +224,7 @@ imgw_bmp_write_24bit
 int main()
 {
     unsigned width  = 820;
-    unsigned height = 360 ;
+    unsigned height = 360;
     unsigned x, y;
     int status = 0;
     unsigned char *pixels_grayscale = malloc(width * height);
@@ -269,7 +271,6 @@ int main()
             ,width
             ,height
             );
-
 
     free(pixels_colour);
     free(pixels_grayscale);
