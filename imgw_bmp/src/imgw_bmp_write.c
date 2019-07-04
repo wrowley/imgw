@@ -43,6 +43,7 @@ imgw_bmp_write_8bit
     ,const unsigned char *pixels
     ,      unsigned       width
     ,      unsigned       height
+    ,const unsigned char *colour_table
     )
 {
     FILE *fp = fopen(filename, "w+");
@@ -85,10 +86,10 @@ imgw_bmp_write_8bit
     /* Gray-scale colour table */
     for (idx = 0; idx < 256 ; idx++)
     {
-        write_uchar(fp, idx);
-        write_uchar(fp, idx);
-        write_uchar(fp, idx);
-        write_uchar(fp, 0);
+        write_uchar(fp, colour_table[idx * 4 + 0]);
+        write_uchar(fp, colour_table[idx * 4 + 1]);
+        write_uchar(fp, colour_table[idx * 4 + 2]);
+        write_uchar(fp, 0x00); /* (colour_table[idx * 4 + 3]); */
     }
 
     /* Pixel array */
@@ -108,6 +109,35 @@ imgw_bmp_write_8bit
     fclose(fp);
 
     return 0;
+}
+
+int
+imgw_bmp_write_8bit_grayscale
+    (const char          *filename
+    ,const unsigned char *pixels
+    ,      unsigned       width
+    ,      unsigned       height
+    )
+{
+    unsigned char colour_table[4 * 256];
+    unsigned idx;
+
+    for (idx = 0; idx < 256; idx++)
+    {
+        colour_table[idx * 4 + 0] = idx;
+        colour_table[idx * 4 + 1] = idx;
+        colour_table[idx * 4 + 2] = idx;
+        colour_table[idx * 4 + 3] = 0;
+    }
+
+    return
+        imgw_bmp_write_8bit
+            (filename
+            ,pixels
+            ,width
+            ,height
+            ,colour_table
+            );
 }
 
 /* A small test function for the function/s in this file */
@@ -132,7 +162,7 @@ int main()
     }
 
     status =
-        imgw_bmp_write_8bit
+        imgw_bmp_write_8bit_grayscale
             ("test-8bit.bmp"
             ,pixels
             ,width
