@@ -104,9 +104,61 @@ imgw_bmp_read_properties
     *bpp    = bmp_reader->bpp;
 }
 
+void
+imgw_bmp_read_pixel_array
+    (imgw_bmp_read *bmp_reader
+    ,unsigned char *pixel_array
+    )
+{
+    const unsigned width        = bmp_reader->width;
+    const unsigned height       = bmp_reader->height;
+    const unsigned width_padded = (width * 3 + 3) / 4 * 4;
+
+    if (bmp_reader->bpp == 24)
+    {
+        unsigned x, y;
+
+        fseek(bmp_reader->fp, bmp_reader->pixel_array_offset, SEEK_SET);
+
+        /* Pixel array */
+        for (y = 0; y < height; y++)
+        {
+            unsigned bytes_in_row = 0;
+            for (x = 0; x < width; x++)
+            {
+                /* Convert bottom-to-top to top-to-bottom */
+                unsigned i = (height - y - 1) * width + x;
+
+                pixel_array[i * 3 + 0] = read_uchar(bmp_reader); /* Blue */
+                pixel_array[i * 3 + 1] = read_uchar(bmp_reader); /* Green */
+                pixel_array[i * 3 + 2] = read_uchar(bmp_reader); /* Red */
+
+                bytes_in_row += 3;
+            }
+            /* Padding to 4 byte boundaries */
+            for (       ; bytes_in_row < width_padded; bytes_in_row++)
+            {
+                read_uchar(bmp_reader);
+            }
+        }
+    }
+    else
+    {
+        /* TODO: implement */
+        unsigned idx;
+        for (idx = 0; idx < width * height; idx++)
+        {
+            pixel_array[3 * idx + 0] = 0;
+            pixel_array[3 * idx + 1] = 0;
+            pixel_array[3 * idx + 2] = 0;
+        }
+    }
+}
+
 /* A small test function for the function/s in this file */
 #ifdef IMGW_BMP_READ_MAIN
 #include <stdlib.h>
+#include "imgw_bmp/include/imgw_bmp_write.h"
 int main()
 {
     unsigned width  = 0;
@@ -121,19 +173,61 @@ int main()
 
     if (status == 0)
     {
+        unsigned y, x;
+        unsigned char *pixel_array;
         imgw_bmp_read_properties
             (&bmp_reader
             ,&width
             ,&height
             ,&bpp
             );
+        if (bpp != 24) abort();
+
+        pixel_array = malloc(width * height * 3);
+
+        imgw_bmp_read_pixel_array
+            (&bmp_reader
+            ,pixel_array
+            );
+
+        printf("Properties of %s\n", "test-24bit.bmp");
+        printf("    width  -> %d\n", width );
+        printf("    height -> %d\n", height);
+        printf("    bpp    -> %d\n", bpp   );
+
+        for (y = 0; y < height; y++)
+        {
+            for (x = 0; x < width; x++)
+            {
+                int i = y * width + x;
+
+                int b = pixel_array[i * 3 + 0];
+                int g = pixel_array[i * 3 + 1];
+                int r = pixel_array[i * 3 + 2];
+
+                unsigned xscale = width - x;
+
+                b = b * xscale / width; /* Scale down colours by distance from left */
+                g = g * xscale / width; /* Scale down colours by distance from left */
+                r = r * xscale / width; /* Scale down colours by distance from left */
+
+                pixel_array[i * 3 + 0] = (unsigned char)r; /* Rotate colours */
+                pixel_array[i * 3 + 1] = (unsigned char)b; /* Rotate colours */
+                pixel_array[i * 3 + 2] = (unsigned char)g; /* Rotate colours */
+            }
+        }
+
+        status =
+            imgw_bmp_write_24bit
+                ("test-24bit-modified.bmp"
+                ,pixel_array
+                ,width
+                ,height
+                );
+
+        free(pixel_array);
         imgw_bmp_read_close(&bmp_reader);
     }
-
-    printf("Properties of %s\n", "test-24bit.bmp");
-    printf("    width  -> %d\n", width );
-    printf("    height -> %d\n", height);
-    printf("    bpp    -> %d\n", bpp   );
 
     return status;
 }
